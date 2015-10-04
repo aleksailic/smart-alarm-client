@@ -3,35 +3,33 @@ var py = require('python-shell');
 var pb = require('pushbullet');
 var gpio = require("pi-gpio");
 var urllib = require('urllib');
-var urllib_sync = require('urllib-sync');
 var PUSHER = new pb('pDr61ZoqkVJ0D5Ze4Sg2xyuUg6cEBwOS');
-var SERIAL=fs.readFile('serial');
-
-var SERVER="http://smartalarm.net84.net/";
+var SERIAL='D8BS-L3V1-0915';
+ 
+var SERVER="http://192.168.42.23:8080/alarm/board_control.php";
 var CALIBRATION = 500;
 var THRESHOLD=10000;
 var SLEEP=500;
-
+ 
 Array.prototype.shiftpush=function(item){
-	this.shift();
-	this.push(item);
+        this.shift();
+        this.push(item);
 };
 Array.prototype.sum=function(){
-	var sum=0;
-	for(var i=0;i<this.length;i++){
-		sum+=this[i];
-	}
-	return sum;
+        var sum=0;
+        for(var i=0;i<this.length;i++){
+                sum+=this[i];
+        }
+        return sum;
 };
 Array.prototype.print=function(){
-	var output="";
-	for(var i=0;i<this.length;i++){
-		output+=this[i];
-		i==(this.length-1) ? output+="" : output+=", ";
-	}
-	console.log("data: "+output+". sum: "+this.sum());
+        var output="";
+        for(var i=0;i<this.length;i++){
+                output+=this[i];
+                i==(this.length-1) ? output+="" : output+=", ";
+        }
+        console.log("data: "+output+". sum: "+this.sum());
 };
-
 
 var LED={
 	yellow:15,
@@ -67,85 +65,81 @@ var LED={
 	}
 }
 
-function getData(){
-	LED.blink.start(LED.yellow);
-	var res=urllib_sync.request(SERVER,{
-		method:"GET",
-		data:{
-			action:'getData',
-			serial:SERIAL
-		}
-	});
-	LED.blink.stop(LED.yellow);
-	var data=JSON.parse(res.data.toString());
-	console.log("status: "+data.status);
-	return data;
+function log(message){
+        console.log(message);
+        var res=urllib.request(SERVER,{
+                method:"GET",
+                data:{
+                        action:'addLog',
+                        log:message,
+                        serial:SERIAL
+                }
+        });
 }
-function log(data){
-	console.log(data);
-	LED.blink.start(LED.yellow);
-	var res=urllib.request(SERVER,{
-		method:"GET",
-		data:{
-			action:'addLog',
-			log:data,
-			serial:SERIAL
-		}
-	},function(){
-		LED.blink.stop(LED.yellow);
-	});
-}
-function toggleStatus(){
-	var urllib = require('urllib-sync');
-	var res=request(SERVER+'isActive.php?serial='+SERIAL);
-}
-
-function main(){
+ 
+function setup(){
 	gpio.open(LED.yellow, "output");
 	gpio.open(LED.red, "output");
 	gpio.open(LED.green, "output");
 
-	log("SmartAlarm upaljen");
 	LED.on(LED.red);
-
-	if( typeof counter == 'undefined' || counter>10){
-		var counter=0;
-		var data=getData();
-	}
-	if(data.status == 1){
-		LED.on(LED.green); LED.off(LED.red);
-		log("SmartAlarm skenira");
-		if( typeof buffer == 'undefined' )
-			buffer=new Array(0,0,0,0,0,0,0,0,0,0);
-
-		var getdB=new PY('getdB.py',{mode:'text',scriptPath:"/home/pi/"});
-		var startDate = new Date();
-
-		getdB.on('message',function(dB){
-			dB=parseInt(dB);
-			log("Trenutno: "+dB);
-			buffer.shiftpush(dB);
-			buffer.print();
-
-			if( buffer.sum() > THRESHOLD ){ //beba budna
-				for(var i=0;i<data.users.length;i++){ //Send Pushbullet note to every user
-					log("Beba je budna");
-					PUSHER.note(data.users[i].email,'SmartAlarm Status','BEBA JE BUDNA!');
-				}
-			}else{
-				var stopDate=new Date();
-				var diff=SLEEP-(stopDate+startDate);
-				counter++;
-
-				diff>0 ? setTimeout(main,diff) : setTimeout(main,0);
-				console.log("SLEEPING " + diff);
-			}
-		});
-	}else{
-		LED.off(LED.green); LED.on(LED.red);
-		console.log("SLEEPING 10s");
-		setTimeout(main,10000);
-	}
+    log("SmartAlarm upaljen");  
 }
-
-main(); 
+function loop(){
+        urllib.request(SERVER,{
+                method:"GET",
+                data:{
+                        action:'getData',
+                        serial:SERIAL
+                },
+                dataType:'json'
+        },main);
+}
+ 
+function main(err,data,res){
+        if( typeof main.counter == 'undefined' || main.counter>10){
+                main.counter=0;
+        }
+        if(typeof data !=='undefined'){
+                main.data=data;
+        }
+        if(main.data.status == 1){
+        		LED.on(LED.green); LED.off(LED.red);
+                if( typeof main.buffer == 'undefined' )
+                        main.buffer=new Array(0,0,0,0,0,0,0,0,0,0);
+       
+                var getdB=new py('getdB.py',{mode:'text',scriptPath:"/home/pi/alarm/"});
+                var startDate = new Date();
+       
+                getdB.on('message',function(dB){
+                        dB=parseInt(dB);
+                        main.buffer.shiftpush(dB);
+                        main.buffer.print();
+       
+                        if( main.buffer.sum() > THRESHOLD ){ //beba budna
+                                for(var i=0;i<main.data.users.length;i++){ //Send Pushbullet note to every user
+                                        log("Beba je budna");
+                                        PUSHER.note(main.data.users[i].email,'SmartAlarm Status','BEBA JE BUDNA!');
+                                }
+                        }else{
+                                var stopDate=new Date();
+                                var diff=SLEEP-(stopDate-startDate);
+                                console.log("SLEEPING " + diff);
+ 
+                                main.counter++;
+                                if(main.counter>10){
+                                		log('Buffer iznosi: '+JSON.stringify(main.buffer));
+                                        diff>0 ? setTimeout(loop,diff) : setTimeout(loop,0);  
+                                }else{
+                                        diff>0 ? setTimeout(main,diff) : setTimeout(main,0);
+                                }
+                        }
+                });
+        }else{
+                log("SmartAlarm je neaktivan. Pauza 10sekunde");
+                setTimeout(loop,10000);
+        }
+}
+ 
+setup();
+loop();
