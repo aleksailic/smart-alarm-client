@@ -54,7 +54,7 @@ var LED={
 					}
 				},time);
 			},time);
-		}
+		},
 		stop:function(pin){
 			LED.blink.isBlinking=false;
 		}
