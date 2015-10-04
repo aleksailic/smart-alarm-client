@@ -4,7 +4,7 @@ var pb = require('pushbullet');
 var gpio = require("pi-gpio");
 var urllib = require('urllib');
 var urllib_sync = require('urllib-sync');
-var PUSHER = new PB('pDr61ZoqkVJ0D5Ze4Sg2xyuUg6cEBwOS');
+var PUSHER = new pb('pDr61ZoqkVJ0D5Ze4Sg2xyuUg6cEBwOS');
 var SERIAL=fs.readFile('serial');
 
 var SERVER="http://smartalarm.net84.net/";
@@ -82,6 +82,7 @@ function getData(){
 	return data;
 }
 function log(data){
+	console.log(data);
 	LED.blink.start(LED.yellow);
 	var res=urllib.request(SERVER,{
 		method:"GET",
