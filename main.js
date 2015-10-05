@@ -6,7 +6,7 @@ var urllib = require('urllib');
 var PUSHER = new pb('pDr61ZoqkVJ0D5Ze4Sg2xyuUg6cEBwOS');
 var SERIAL='D8BS-L3V1-0915';
  
-var SERVER="http://192.168.42.23:8080/alarm/board_control.php";
+var SERVER="http://smartalarm.net84.net/board_control.php";
 var CALIBRATION = 500;
 var THRESHOLD=10000;
 var SLEEP=500;
@@ -106,8 +106,9 @@ function main(err,data,res){
         if(main.data.status == 1){
         		LED.on(LED.green); LED.off(LED.red);
                 if( typeof main.buffer == 'undefined' )
-                        main.buffer=new Array(0,0,0,0,0,0,0,0,0,0);
-       
+                    main.buffer=new Array(0,0,0,0,0,0,0,0,0,0);
+                if( typeof main.data.sensitivity !== 'undefined')
+       				THRESHOLD=CALIBRATION+main.data.sensitivity*100;
                 var getdB=new py('getdB.py',{mode:'text',scriptPath:"/home/pi/alarm/"});
                 var startDate = new Date();
        
@@ -135,6 +136,8 @@ function main(err,data,res){
                                 }
                         }
                 });
+        }else if(main.data.calibration == 1){
+        	
         }else{
                 log("SmartAlarm je neaktivan. Pauza 10sekunde");
                 setTimeout(loop,10000);
