@@ -5,11 +5,11 @@ card_info={}
 for device_number, card_name in enumerate (alsaaudio.cards()):
 	card_info[card_name] = "hw:%s,0" % device_number
 
-inp=alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK,card_info["Device"])
+inp=alsaaudio.PCM(alsaaudio.PCM_CAPTURE,alsaaudio.PCM_NONBLOCK,card_info["Device"]) #Selektuj USB zvucnu karticu
 
-inp.setchannels(1)
-inp.setrate(8000)
-inp.setformat(alsaaudio.PCM_FORMAT_S16_LE)
+inp.setchannels(1) #Mono
+inp.setrate(8000) #8000Hz
+inp.setformat(alsaaudio.PCM_FORMAT_S16_LE) #16bit
 inp.setperiodsize(160)
 
 while True:
