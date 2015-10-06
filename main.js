@@ -51,7 +51,7 @@ var LED={ //Objekat koji sadrzi funkcije koje manipulisu LED diode povezane na S
         isBlinking:false,
         start:function(pin, time){
                 if(typeof time=='undefined')
-                    var time=250;
+                    var time=100;
                 LED.blink.isBlinking=true;
                 LED.on(pin);
                 setTimeout(function(){
@@ -89,6 +89,7 @@ var LED={ //Objekat koji sadrzi funkcije koje manipulisu LED diode povezane na S
  
 function log(message){
     console.log(message);
+    LED.blink.start(LED.yellow);
     var res=urllib.request(SERVER,{ //Prosledi serveru poruku za ispis na dashboard terminalu
         method:"GET",
         data:{
@@ -96,6 +97,8 @@ function log(message){
             log:message,
             serial:SERIAL
         }
+    },function(){
+        LED.blink.stop(LED.yellow);
     });
 }
  
@@ -112,6 +115,7 @@ function setup(){ //Startup funkcija
     log("SmartAlarm upaljen");  
 }
 function loop(){ //Glavna petlja
+    LED.blink.start(LED.yellow);
     urllib.request(SERVER,{ //Zahtev serveru za podatke o SmartAlarmu
         method:"GET",
         data:{
@@ -120,6 +124,7 @@ function loop(){ //Glavna petlja
         },
         dataType:'json'
     },function(err,data,res){
+        LED.blink.stop(LED.yellow);
         main(err,data,res);            
     }); //Poziva funkciju main
 }
@@ -160,6 +165,7 @@ function main(err,data,res){
                 for(var i=0;i<main.data.users.length;i++){ //Posalji PushBullet svakom registrovanom korisniku sa istim serialom
                     PUSHER.note(main.data.users[i].email,'SmartAlarm: ' + main.data.name, 'Beba je budna.');
                 }
+                LED.blink.start(LED.yellow);
                 urllib.request(SERVER,{ //Zahtev serveru za promenu statusa
                     method:"GET",
                     data:{
@@ -169,6 +175,7 @@ function main(err,data,res){
                     },
                     dataType:'json'
                 },function(err,data,res){
+                    LED.blink.stop(LED.yellow);
                     if(data.passed){ //Uspesno promenjen status
                         main.counter = 0; main.buffer = new Array(0,0,0,0,0); //Resetuj vrednosti
                         loop(); //Zapocni novu instancu
