@@ -17,12 +17,12 @@ Array.prototype.shiftpush=function(item){ //Umece novi element dok stari izbacuj
         this.shift();
         this.push(item);
 };
-Array.prototype.sum=function(){ //Sabira sve elemente niza
-        var sum=0;
+Array.prototype.check=function(num){ //Proverava da li su svi uzastopce aktivni
         for(var i=0;i<this.length;i++){
-                sum+=this[i];
+            if(i < num)
+                return false
         }
-        return sum;
+        return true;
 };
 Array.prototype.print=function(){ //Stampa niz u komandni panel
         var output="";
@@ -81,7 +81,11 @@ function log(message){
 }
  
 function setup(){ //Startup funkcija
-	LED.on(LED.red);
+    gpio.open(LED.red,'output',function(err){
+        LED.on(LED.red);
+    });
+    gpio.open(LED.yellow,'output');
+    gpio.open(LED.green,'output');
     log("SmartAlarm upaljen");  
 }
 function loop(){ //Glavna petlja
@@ -111,12 +115,14 @@ function main(err,data,res){
                 var getdB=new py('getdB.py',{mode:'text',scriptPath:"/home/pi/alarm/"}); //Skripta koja meri intenzitet zvuka
                 var startDate = new Date();
 
+                console.log(THRESHOLD);
+
                 getdB.on('message',function(dB){
                         dB=parseInt(dB);
                         main.buffer.shiftpush(dB); //Umece novi element dok stari izbacuje
                         main.buffer.print(); //Ispis bafera na komandom panelu SmartAlarm-a za potrebe debagovanja
        
-                        if( main.buffer.sum() > THRESHOLD ){
+                        if( main.buffer.check(THRESHOLD) ){
                         	log("Beba je budna");
                             for(var i=0;i<main.data.users.length;i++){ //Posalji PushBullet svakom registrovanom korisniku sa istim serialom
                                 PUSHER.note(main.data.users[i].email,'SmartAlarm: ' + main.data.name, 'Beba je budna.');
@@ -140,7 +146,6 @@ function main(err,data,res){
                         }else{
                             var stopDate=new Date(); 
                             var diff=SLEEP-(stopDate-startDate); //Meri vremenski razmak u izvrsavanju koda zarad vremenski konstantnog uzimanja uzoraka
-                            console.log("SLEEPING: " + diff);
  
                             main.counter++;
                             if(main.counter>10){ //Tek na desetoj iteraciji pozivamo glavnu petlju
