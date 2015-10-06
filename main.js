@@ -55,9 +55,9 @@ var LED={ //Objekat koji sadrzi funkcije koje manipulisu LED diode povezane na S
                 LED.blink.isBlinking=true;
                 LED.on(pin);
                 setTimeout(function(){
-                        gpio.write(pin, 0);
+                        LED.off(pin);
                         setTimeout(function(){
-                            if(LED.isBlinking){         
+                            if(LED.blink.isBlinking){         
                                 LED.blink.start(pin,time);
                             }
                         },time);
