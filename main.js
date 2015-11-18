@@ -8,8 +8,8 @@ var SERIAL='D8BS-L3V1-0915'; //Jedinstveni serial odredjen SmartAlarm-u
 var SERVER="http://think.in.rs/board_control.php"; //Putanja servera
 var CALIBRATION = 200; //Donja kalibracija
 var THRESHOLD=2000; //Gornja kalibracija, ukoliko korisnik nije postavio sensitivity
-var STEP=200; //Korak za kalibraciju koji mnozi sensitivity.
-var SLEEP=200; //Vremenski interval izmedju svakog uzorka zvuka
+var STEP=100; //Korak za kalibraciju koji mnozi sensitivity.
+var SLEEP=250; //Vremenski interval izmedju svakog uzorka zvuka
  
 //Dodatne funkcije za manipulisanje nizova
 Array.prototype.shiftpush=function(item){ //Umece novi element dok stari izbacuje
@@ -50,18 +50,18 @@ var LED={ //Objekat koji sadrzi funkcije koje manipulisu LED diode povezane na S
     blink:{
         isBlinking:false,
         start:function(pin, time){
-                if(typeof time=='undefined')
-                    var time=100;
-                LED.blink.isBlinking=true;
-                LED.on(pin);
+            if(typeof time=='undefined')
+                var time=100;
+            LED.blink.isBlinking=true;
+            LED.on(pin);
+            setTimeout(function(){
+                LED.off(pin);
                 setTimeout(function(){
-                        LED.off(pin);
-                        setTimeout(function(){
-                            if(LED.blink.isBlinking){         
-                                LED.blink.start(pin,time);
-                            }
-                        },time);
+                    if(LED.blink.isBlinking){         
+                        LED.blink.start(pin,time);
+                    }
                 },time);
+            },time);
         },
         stop:function(pin){
             LED.blink.isBlinking=false;
@@ -86,7 +86,6 @@ var LED={ //Objekat koji sadrzi funkcije koje manipulisu LED diode povezane na S
         }      
     }
 }
- 
 function log(message){
     console.log(message);
     LED.blink.start(LED.yellow);
@@ -101,7 +100,6 @@ function log(message){
         LED.blink.stop(LED.yellow);
     });
 }
- 
 function setup(){ //Startup funkcija
     gpio.open(LED.red,"output",function(err){
         LED.on(LED.red);
@@ -112,7 +110,8 @@ function setup(){ //Startup funkcija
     gpio.open(LED.green, "output",function(){
         LED.off(LED.green);
     });
-    log("SmartAlarm upaljen");  
+    log("SmartAlarm upaljen"); 
+    loop();
 }
 function loop(){ //Glavna petlja
     LED.blink.start(LED.yellow);
@@ -143,7 +142,7 @@ function main(err,data,res){
         if( typeof main.prebuffer == 'undefined')
             main.prebuffer = new Array (0,0,0,0,0);
         if( typeof main.data.sensitivity !== 'undefined')
-            THRESHOLD=CALIBRATION+main.data.sensitivity*100;
+            THRESHOLD=CALIBRATION+main.data.sensitivity*STEP;
 
         var getdB=new py('getdB.py',{mode:'text',scriptPath:"/home/pi/alarm/"}); //Skripta koja meri intenzitet zvuka
         var startDate = new Date();
@@ -158,7 +157,6 @@ function main(err,data,res){
                 log('Buffer iznosi: '+ JSON.stringify(main.buffer));                    
             }
             main.buffer.print(); //Stampa buffer za potrebe debagovanja
-
             if( main.buffer.check(THRESHOLD) ){
                 log("Beba je budna");
                 LED.on(LED.red); LED.off(LED.green);
@@ -169,9 +167,9 @@ function main(err,data,res){
                 urllib.request(SERVER,{ //Zahtev serveru za promenu statusa
                     method:"GET",
                     data:{
-                            action:'setStatus',
-                            value:'0',
-                            serial: SERIAL
+                        action:'setStatus',
+                        value:'0',
+                        serial: SERIAL
                     },
                     dataType:'json'
                 },function(err,data,res){
@@ -204,4 +202,3 @@ function main(err,data,res){
 }
  
 setup();
-loop();
